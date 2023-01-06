@@ -1,0 +1,43 @@
+version: "2.1"
+
+services:
+  mongo:
+    container_name: mongo
+    build: ./db/
+    ports:
+      - "27017:27017"
+    working_dir: /db
+    volumes:
+      - ~/record-app-mongodb:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+
+  app:
+    container_name: app
+    build: ./api/
+    depends_on:
+      - "mongo"
+    command:
+      [
+        "./wait-for-it.sh",
+        "mongo:27017",
+        "--",
+        "deno",
+        "run",
+        "--allow-net",
+        "--allow-read",
+        "--allow-env",
+        "main.ts",
+      ]
+    ports:
+      - "8080:8080"
+    working_dir: /api
+    volumes:
+      - ./:/app
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+
+volumes:
+  mongodb-data:
