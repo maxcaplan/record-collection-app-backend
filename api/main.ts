@@ -1,38 +1,24 @@
-// Modules
-import { serve } from "./deps.ts";
-import { MongoClient } from "./deps.ts";
+import { Server } from "./deps.ts";
+import { GraphQLHTTP } from "./deps.ts";
+import { makeExecutableSchema } from "./deps.ts";
 
-// Libs
-import { handleError } from "./libs/errorHandler.ts";
+import { typeDefs } from "./typeDefs.ts";
+import { resolvers } from "./resolvers.ts";
 
-// Server vars
-const port = 8080;
+const schema = makeExecutableSchema({ resolvers, typeDefs });
 
-const dbPort = 27017;
-const dbHostname = "mongo";
-const dbUsername = Deno.env.get("MONGO_INITDB_ROOT_USERNAME");
-const dbPassword = Deno.env.get("MONGO_INITDB_ROOT_PASSWORD");
+const server = new Server({
+  handler: async (req) => {
+    const { pathname } = new URL(req.url);
 
-try {
-  const dbURI = `mongodb://${dbUsername}:${dbPassword}@${dbHostname}:${dbPort}`;
-  const client = new MongoClient();
+    return pathname === "/graphql"
+      ? await GraphQLHTTP<Request>({
+          schema,
+          graphiql: true,
+        })(req)
+      : new Response("Not Found", { status: 404 });
+  },
+  port: 8080,
+});
 
-  console.log(`Connecting to '${dbURI}'`);
-
-  await client.connect(dbURI);
-
-  console.log("Succesfully connected to mongodb");
-
-  const handler = (request: Request): Response => {
-    const body = `Your user-agent is:\n\n${
-      request.headers.get("user-agent") ?? "Unknown"
-    }`;
-
-    return new Response(body, { status: 200 });
-  };
-
-  console.log(`HTTP webserver running. Access it at: http://localhost:8080/`);
-  await serve(handler, { port });
-} catch (e: unknown) {
-  handleError(e);
-}
+server.listenAndServe();

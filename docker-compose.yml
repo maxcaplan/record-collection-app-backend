@@ -34,7 +34,7 @@ services:
       - "8080:8080"
     working_dir: /api
     volumes:
-      - ./:/app
+      - ./:/app/api
     environment:
       - MONGO_INITDB_ROOT_USERNAME
       - MONGO_INITDB_ROOT_PASSWORD
