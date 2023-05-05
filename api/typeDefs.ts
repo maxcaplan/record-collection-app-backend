@@ -2,11 +2,13 @@ import { gql } from "./deps.ts";
 
 export const typeDefs = gql`
   type Query {
-    hello: String
+    hello: String,
+    getInventory: [Record!]!,
+    getInventoryRecord(name: String!): [Record!]! 
   }
 
   type Record {
-    id: ID!
+    _id: ID!
     name: String!
     artists: [String!]!
     label: String
