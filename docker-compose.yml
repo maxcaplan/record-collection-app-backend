@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  api:
+    build: ./api
+    ports:
+      - "${API_INTERNAL_PORT}:${API_EXTERNAL_PORT}"
+    environment:
+      - API_PORT=${API_INTERNAL_PORT}
+      - DB_PORT=${DB_EXTERNAL_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_URI=mongodb://${DB_USER}:${DB_PASS}@db:${DB_EXTERNAL_PORT}
+      - WAIT_HOSTS=db:${DB_EXTERNAL_PORT}
+    working_dir: /app
+    volumes:
+      - ./api:/app
+
+  db:
+    build: ./db
+    ports:
+      - "${DB_INTERNAL_PORT}:${DB_EXTERNAL_PORT}"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
+    volumes:
+      - db:/app
+
+volumes:
+  db:
