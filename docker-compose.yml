@@ -8,9 +8,8 @@ services:
     environment:
       - API_PORT=${API_INTERNAL_PORT}
       - DB_PORT=${DB_EXTERNAL_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_URI=mongodb://${DB_USER}:${DB_PASS}@db:${DB_EXTERNAL_PORT}
+      - DB_USER=${DB_API_USER}
+      - DB_PASS=${DB_API_PASS}
       - WAIT_HOSTS=db:${DB_EXTERNAL_PORT}
     working_dir: /app
     volumes:
@@ -21,9 +20,12 @@ services:
     ports:
       - "${DB_INTERNAL_PORT}:${DB_EXTERNAL_PORT}"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
+      - MONGODB_INITDB_ROOT_USERNAME=${DB_ADMIN_USER}
+      - MONGODB_INITDB_ROOT_PASSWORD=${DB_ADMIN_PASS}
+      - DB_API_USER=${DB_API_USER}
+      - DB_API_PASS=${DB_API_PASS}
     volumes:
+      - ./db/db-init.js:/docker-entrypoint-initdb.d/db-init.js:ro
       - db:/app
 
 volumes:
