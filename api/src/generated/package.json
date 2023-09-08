@@ -1,0 +1,19 @@
+{
+  "name": "record-api-graphql-types",
+  "version": "0.0.2",
+  "description": "Typescript types for record api graphql schema",
+  "main": "graphql.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxcaplan/record-collection-app-backend.git#master"
+  },
+  "author": "Max Caplan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/maxcaplan/record-collection-app-backend/issues"
+  },
+  "homepage": "https://github.com/maxcaplan/record-collection-app-backend/tree/master#readme"
+}
