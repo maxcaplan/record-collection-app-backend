@@ -35,27 +35,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var server_1 = require("@apollo/server");
-var standalone_1 = require("@apollo/server/standalone");
+var server_1 = __importDefault(require("./config/server"));
 var typedefs_1 = require("./schema/typedefs");
-// import { schema } from "./schema";
-function startApolloServer() {
+var port = process.env.API_PORT ? parseInt(process.env.API_PORT) : 2007;
+var server = new server_1.default({ typeDefs: typedefs_1.typeDefs }, port);
+function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var server, url;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    server = new server_1.ApolloServer({ typeDefs: typedefs_1.typeDefs });
-                    return [4 /*yield*/, (0, standalone_1.startStandaloneServer)(server, {
-                            listen: { port: 2007 },
-                        })];
+                case 0: return [4 /*yield*/, server.startServer()];
                 case 1:
-                    url = (_a.sent()).url;
-                    console.log("Server is running at: ".concat(url));
+                    _a.sent();
+                    console.log("API Server started at: http://localhost:".concat(server.port));
                     return [2 /*return*/];
             }
         });
     });
 }
-startApolloServer();
+main();

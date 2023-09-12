@@ -1,16 +1,13 @@
-import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
+import Server from "./config/server";
 
 import { typeDefs } from "./schema/typedefs";
-// import { schema } from "./schema";
 
-async function startApolloServer() {
-  const server = new ApolloServer({ typeDefs });
-  const { url } = await startStandaloneServer(server, {
-    listen: { port: 2007 },
-  });
+const port = process.env.API_PORT ? parseInt(process.env.API_PORT) : 2007;
+const server = new Server({ typeDefs }, port);
 
-  console.log(`Server is running at: ${url}`);
+async function main() {
+  await server.startServer();
+  console.log(`API Server started at: http://localhost:${server.port}`);
 }
 
-startApolloServer();
+main();
