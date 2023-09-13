@@ -40,6 +40,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var server_1 = __importDefault(require("./config/server"));
+require("./config/database.js");
 var typedefs_1 = require("./schema/typedefs");
 var port = process.env.API_PORT ? parseInt(process.env.API_PORT) : 2007;
 var server = new server_1.default({ typeDefs: typedefs_1.typeDefs }, port);

@@ -10,6 +10,7 @@ services:
       - DB_PORT=${DB_EXTERNAL_PORT}
       - DB_USER=${DB_API_USER}
       - DB_PASS=${DB_API_PASS}
+      - DB_AUTH_SOURCE=${DB_AUTH_SOURCE}
       - WAIT_HOSTS=db:${DB_EXTERNAL_PORT}
     working_dir: /app
     volumes:

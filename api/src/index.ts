@@ -1,4 +1,5 @@
 import Server from "./config/server";
+import "./config/database.js";
 
 import { typeDefs } from "./schema/typedefs";
 
