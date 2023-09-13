@@ -1,5 +1,4 @@
 .env
-.git/*
-api/node_modules/*
-api/dist/*
-api/package-lock.json
+.git/
+api/node_modules/
+api/dist/
