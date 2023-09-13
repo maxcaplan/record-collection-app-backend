@@ -5,6 +5,8 @@ import express, { Express } from "express";
 import http from "http";
 import cors from "cors";
 import bodyParser from "body-parser";
+import logger from "./logger";
+import { pinoHttp } from "pino-http";
 
 export default class Server {
   app: Express;
@@ -27,6 +29,8 @@ export default class Server {
   async startServer() {
     await this.server.start();
 
+    this.app.use(pinoHttp({ logger }));
+
     this.app.use(
       "/",
       cors<cors.CorsRequest>(),
@@ -34,8 +38,10 @@ export default class Server {
       expressMiddleware(this.server, {}),
     );
 
-    await new Promise<void>((resolve) =>
-      this.httpServer.listen({ port: this.port }, resolve),
-    );
+    await new Promise<void>(() => {
+      this.httpServer.listen({ port: this.port }, () => {
+        logger.info(`Server listening on port: ${this.port}`);
+      });
+    });
   }
 }

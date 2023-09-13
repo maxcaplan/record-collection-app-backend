@@ -35,24 +35,75 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var server_1 = __importDefault(require("./config/server"));
-require("./config/database.js");
+var database_1 = __importDefault(require("./config/database"));
+var errorReporting_1 = require("./utility/errorReporting");
+var getConnectionComponents_1 = require("./utility/getConnectionComponents");
 var typedefs_1 = require("./schema/typedefs");
-var port = process.env.API_PORT ? parseInt(process.env.API_PORT) : 2007;
-var server = new server_1.default({ typeDefs: typedefs_1.typeDefs }, port);
-function main() {
+/**
+ * Creates and starts a connection with the database
+ */
+function initConnection() {
     return __awaiter(this, void 0, void 0, function () {
+        var components, connection;
+        return __generator(this, function (_a) {
+            components = (0, getConnectionComponents_1.getConnectionComponents)();
+            connection = new (database_1.default.bind.apply(database_1.default, __spreadArray([void 0], components, false)))();
+            return [2 /*return*/, connection];
+        });
+    });
+}
+/**
+ * Creates and starts an http server
+ */
+function initServer(typeDefs) {
+    return __awaiter(this, void 0, void 0, function () {
+        var port, server;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, server.startServer()];
+                case 0:
+                    port = process.env.API_PORT ? parseInt(process.env.API_PORT) : 2007;
+                    server = new server_1.default({ typeDefs: typeDefs }, port);
+                    return [4 /*yield*/, server.startServer()];
                 case 1:
                     _a.sent();
-                    console.log("API Server started at: http://localhost:".concat(server.port));
-                    return [2 /*return*/];
+                    return [2 /*return*/, server];
+            }
+        });
+    });
+}
+function main() {
+    return __awaiter(this, void 0, void 0, function () {
+        var connection, server, e_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, initConnection()];
+                case 1:
+                    connection = _a.sent();
+                    return [4 /*yield*/, initServer(typedefs_1.typeDefs)];
+                case 2:
+                    server = _a.sent();
+                    return [3 /*break*/, 4];
+                case 3:
+                    e_1 = _a.sent();
+                    (0, errorReporting_1.reportError)(e_1);
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
