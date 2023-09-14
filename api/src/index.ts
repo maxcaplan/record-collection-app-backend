@@ -1,18 +1,18 @@
 import Server from "./config/server";
-import Connection from "./config/database";
+import MongoConnector from "./connectors/mongoConnector";
 
 import { reportError } from "./utility/errorReporting";
-import { getConnectionComponents } from "./utility/getConnectionComponents";
+import { getMongoConnectionComponents } from "./utility/getMongoConnectionComponents";
 
 import { typeDefs } from "./schema/typedefs";
-import { DocumentNode } from "graphql";
+import type { DocumentNode } from "graphql";
 
 /**
  * Creates and starts a connection with the database
  */
-async function initConnection(): Promise<Connection> {
-  const components = getConnectionComponents();
-  const connection = new Connection(...components);
+async function initMongoConnection(): Promise<Connection> {
+  const components = getMongoConnectionComponents();
+  const connection = new MongoConnector(...components);
 
   return connection;
 }
@@ -31,7 +31,7 @@ async function initServer(typeDefs: DocumentNode[]): Promise<Server> {
 
 async function main() {
   try {
-    const connection = await initConnection();
+    // const connection = await initConnection();
 
     const server = await initServer(typeDefs);
   } catch (e) {

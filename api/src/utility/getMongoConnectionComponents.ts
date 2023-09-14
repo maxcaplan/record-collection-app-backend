@@ -1,8 +1,3 @@
-/**
- * Gets database uri connection components from the following environment
- * variables: DB_USER, DB_PASSW, DB_PORT, DB_AUTH_SOURCE
- */
-
 type ComponentsTuple = [
   user: string,
   pass: string,
@@ -10,7 +5,11 @@ type ComponentsTuple = [
   authSource: string,
 ];
 
-export function getConnectionComponents(): ComponentsTuple {
+/**
+ * Gets database uri connection components from the following environment
+ * variables: DB_USER, DB_PASSW, DB_PORT, DB_AUTH_SOURCE
+ */
+export function getMongoConnectionComponents(): ComponentsTuple {
   const port = process.env.DB_PORT;
   const user = process.env.DB_USER;
   const pass = process.env.DB_PASS;
