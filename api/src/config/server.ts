@@ -8,22 +8,37 @@ import bodyParser from "body-parser";
 import logger from "./logger";
 import { pinoHttp } from "pino-http";
 
-export default class Server {
+import type { Connector } from "../connectors/connector";
+
+interface ResolverContext<DataType> extends BaseContext {
+  dataSource?: Connector<DataType>;
+}
+
+export default class Server<
+  ConnectorDataType,
+  ConnectorType extends Connector<ConnectorDataType>,
+> {
   app: Express;
   httpServer: http.Server;
   server: ApolloServer;
   port: number;
+  connection: Connector<ConnectorDataType>;
 
-  constructor(config: ApolloServerOptions<BaseContext>, port: number = 2007) {
+  constructor(
+    config: ApolloServerOptions<ResolverContext<ConnectorDataType>>,
+    port: number = 2007,
+    connector: ConnectorType,
+  ) {
     this.app = express();
     this.httpServer = http.createServer(this.app);
-    this.server = new ApolloServer({
+    this.server = new ApolloServer<ResolverContext<ConnectorDataType>>({
       ...config,
       plugins: [
         ApolloServerPluginDrainHttpServer({ httpServer: this.httpServer }),
       ],
     });
     this.port = port;
+    this.connection = connector;
   }
 
   async startServer() {
@@ -35,7 +50,9 @@ export default class Server {
       "/",
       cors<cors.CorsRequest>(),
       bodyParser.json({ limit: "50mb" }),
-      expressMiddleware(this.server, {}),
+      expressMiddleware(this.server, {
+        context: async () => ({ dataSource: this.connection }),
+      }),
     );
 
     await new Promise<void>(() => {
