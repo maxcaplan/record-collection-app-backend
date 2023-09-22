@@ -1,31 +1,28 @@
 import { MongoClient } from "mongodb";
-import { getErrorMessage } from "../utility/errorReporting";
 
-import type { ConnectorResponse, Connector } from "./connector";
+import type {
+  Connector,
+  ConnectorDataResponse,
+  ConnectorResponse,
+  Data,
+  DataWithOptionalID,
+} from "./connector";
 import type {
   MongoClientOptions,
   Db,
-  Document,
   Filter,
   FindOptions,
-  OptionalId,
   InsertOneOptions,
+  OptionalUnlessRequiredId,
   BulkWriteOptions,
   UpdateFilter,
   UpdateOptions,
-  WithoutId,
-  ReplaceOptions,
-  DeleteOptions,
-  DropCollectionOptions,
-  InsertManyResult,
-  InsertOneResult,
   WithId,
-  UpdateResult,
-  DeleteResult,
+  FindOneAndReplaceOptions,
+  DeleteOptions,
 } from "mongodb";
 
-/** MongoDB connection abstraction class */
-export default class MongoConnector implements Connector<Document> {
+export default class MongoConnector implements Connector {
   port: string | number;
   user: string;
   pass: string;
@@ -65,198 +62,199 @@ export default class MongoConnector implements Connector<Document> {
     this.db = this.client.db("data");
   }
 
-  /** Connect to MongoDB with `this.connectionUrl` */
-  async connect(): Promise<ConnectorResponse<Document>> {
+  async connect(): Promise<ConnectorResponse> {
     try {
       await this.client.connect();
 
-      return {
-        succeeded: true,
-      };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      return { succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /**
-   * Closes connection to database
-   * @param `force` Force close, emitting no events
-   */
-  async close(force?: boolean): Promise<ConnectorResponse<Document>> {
+  async close(force?: boolean): Promise<ConnectorResponse> {
     try {
       await this.client.close(force);
 
-      return {
-        succeeded: true,
-      };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      return { succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Returns the first document that matches given filter in given collection */
-  async findOne(
+  async findOne<DataType extends Data>(
     collection: string,
-    filter: Filter<Document>,
-    options: FindOptions<Document>,
-  ): Promise<ConnectorResponse<WithId<Document> | null>> {
+    filter: DataType,
+    options?: FindOptions,
+  ): Promise<ConnectorDataResponse<DataType>> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.findOne(filter, options);
+      const coll = this.db.collection<DataType>(collection);
+      const res = await coll.findOne(filter as Filter<DataType>, options);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      return { data: res || undefined, succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Returns array of documents that match given filter in given collection */
-  async findMany(
+  async findMany<DataType extends Data>(
     collection: string,
-    filter: Filter<Document>,
-    options?: FindOptions<Document>,
-  ): Promise<ConnectorResponse<WithId<Document>[]>> {
+    filter: DataType,
+    options?: FindOptions,
+  ): Promise<ConnectorDataResponse<DataType[]>> {
     try {
-      const coll = this.db.collection(collection);
-      const cursor = coll.find(filter, options);
-      const res = await cursor.toArray();
+      const coll = this.db.collection<DataType>(collection);
+      const cursor = coll.find(filter as Filter<DataType>, options);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      // Iterate over cursor and cast document to DataType
+      const data: DataType[] = [];
+      for await (const doc of cursor) {
+        data.push(doc as DataType);
+      }
+
+      return { data, succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Inserts a new document into the given collecion */
-  async insertOne(
+  async insertOne<DataType extends DataWithOptionalID>(
     collection: string,
-    doc: OptionalId<Document>,
+    doc: DataType,
     options?: InsertOneOptions,
-  ): Promise<ConnectorResponse<InsertOneResult<Document>>> {
+  ): Promise<ConnectorDataResponse<DataType>> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.insertOne(doc, options);
+      const coll = this.db.collection<DataType>(collection);
+      const res = await coll.insertOne(
+        doc as OptionalUnlessRequiredId<DataType>,
+        options,
+      );
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      const data: DataType = doc as DataType;
+      data._id = res.insertedId;
+
+      return { data: data, succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Inserts multiple new documents into the given collection */
-  async insertMany(
+  async insertMany<DataType extends DataWithOptionalID>(
     collection: string,
-    docs: OptionalId<Document>[],
+    docs: DataType[],
     options?: BulkWriteOptions,
-  ): Promise<ConnectorResponse<InsertManyResult<Document>>> {
+  ): Promise<ConnectorDataResponse<DataType[]>> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.insertMany(docs, options);
+      const coll = this.db.collection<DataType>(collection);
+      const res = await coll.insertMany(
+        docs as OptionalUnlessRequiredId<DataType>[],
+        options,
+      );
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      for (let i = 0; i < res.insertedCount; i++) {
+        docs[i]._id = res.insertedIds[i];
+      }
+
+      return { data: docs, succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Updates first document that matches given filter in given collection */
-  async updateOne(
+  async updateOne<DataType extends Data>(
     collection: string,
-    filter: Filter<Document>,
-    update: UpdateFilter<Document> | Partial<Document>,
+    filter: DataType,
+    update: DataType,
     options?: UpdateOptions,
-  ): Promise<ConnectorResponse<UpdateResult<Document>>> {
+  ): Promise<ConnectorResponse> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.updateOne(filter, update, options);
+      const coll = this.db.collection<DataType>(collection);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      const updateDoc: UpdateFilter<DataType> = { $set: update };
+
+      await coll.updateOne(filter as Filter<DataType>, updateDoc, options);
+
+      return { succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Updates all documents that match given filter in given collection */
-  async updateMany(
+  async updateMany<DataType extends Data>(
     collection: string,
-    filter: Filter<Document>,
-    update: UpdateFilter<Document>,
+    filter: DataType,
+    update: DataType,
     options?: UpdateOptions,
-  ): Promise<ConnectorResponse<UpdateResult<Document>>> {
+  ): Promise<ConnectorResponse> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.updateMany(filter, update, options);
+      const coll = this.db.collection<DataType>(collection);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      const updateDoc: UpdateFilter<DataType> = { $set: update };
+
+      await coll.updateMany(filter as Filter<DataType>, updateDoc, options);
+
+      return { succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Replaces first document that matches given filter in given collection */
-  async replaceOne(
+  async replaceOne<DataType extends DataWithOptionalID>(
     collection: string,
-    filter: Filter<Document>,
-    replacment: WithoutId<Document>,
-    options?: ReplaceOptions,
-  ): Promise<ConnectorResponse<Document | UpdateResult<Document>>> {
+    filter: DataType,
+    doc: DataType,
+    options?: FindOneAndReplaceOptions,
+  ): Promise<ConnectorDataResponse<DataType>> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.replaceOne(filter, replacment, options);
+      const coll = this.db.collection<DataType>(collection);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      const res = await coll.findOneAndReplace(
+        filter as Filter<DataType>,
+        doc as WithId<DataType>,
+        options || { includeResultMetadata: true },
+      );
+
+      doc._id = res?._id;
+
+      return { data: doc, succeeded: false };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /**
-   * Deletes first document that matches given filter in given collection
-   * If no filter is given, deletes first document in given collection
-   */
-  async deleteOne(
+  async deleteOne<DataType extends Data>(
     collection: string,
-    filter?: Filter<Document>,
+    filter?: DataType,
     options?: DeleteOptions,
-  ): Promise<ConnectorResponse<DeleteResult>> {
+  ): Promise<ConnectorResponse> {
     try {
-      const coll = this.db.collection(collection);
-      const res = await coll.deleteOne(filter, options);
+      const coll = this.db.collection<DataType>(collection);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      const deleteFilter = filter ? (filter as Filter<DataType>) : undefined;
+
+      await coll.deleteOne(deleteFilter, options);
+
+      return { succeeded: true };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
-  /** Deletes all documents that match given filter in given collection */
-  async deleteMany(
-    collecion: string,
-    filter: Filter<Document>,
+  async deleteMany<DataType extends Data>(
+    collection: string,
+    filter?: DataType,
     options?: DeleteOptions,
-  ): Promise<ConnectorResponse<DeleteResult>> {
+  ): Promise<ConnectorResponse> {
     try {
-      const coll = this.db.collection(collecion);
-      const res = await coll.deleteMany(filter, options);
+      const coll = this.db.collection<DataType>(collection);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
-    }
-  }
+      const deleteFilter = filter ? (filter as Filter<DataType>) : undefined;
 
-  /** Drops given collection from the database, deleting all of it'd documents */
-  async dropCollection(
-    collecion: string,
-    options?: DropCollectionOptions,
-  ): Promise<ConnectorResponse<boolean>> {
-    try {
-      const coll = this.db.collection(collecion);
-      const res = await coll.drop(options);
+      await coll.deleteMany(deleteFilter, options);
 
-      return { data: res, succeeded: true };
-    } catch (e) {
-      throw new Error(getErrorMessage(e));
+      return { succeeded: false };
+    } catch (error) {
+      return { succeeded: false, errors: error };
     }
   }
 
@@ -267,7 +265,7 @@ export default class MongoConnector implements Connector<Document> {
    * `this.port` - DB port
    * `this.authSource` - What DB to authenticate against
    */
-  createConnectionUrl(
+  private createConnectionUrl(
     user: string,
     pass: string,
     port: string | number,
